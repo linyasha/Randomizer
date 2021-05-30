@@ -28,6 +28,7 @@ class SecondFragment : Fragment() {
     private var max: Int = 0
     private var listener: SecondFragment.ActionPerformedListenerFragment2? = null
 
+    //Attach listener to MainActivity
     override fun onAttach(context: Context) {
         super.onAttach(context)
         listener = context as SecondFragment.ActionPerformedListenerFragment2
@@ -43,13 +44,13 @@ class SecondFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
         result = view.findViewById(R.id.result)
         backButton = view.findViewById(R.id.back)
         val min = arguments?.getInt(MIN_VALUE_KEY) ?: 0
         val max = arguments?.getInt(MAX_VALUE_KEY) ?: 0
-
+        //Don't generate new random number when screen location changed
         if(savedInstanceState == null) {
-
             if(min == max) {
                 result?.text = "$min"
                 resultInt = min
@@ -64,23 +65,30 @@ class SecondFragment : Fragment() {
             result?.text = resultInt.toString()
         }
 
-
         backButton?.setOnClickListener {
-            listener?.onActionPerformedFragment2(resultInt, min, max)
             if(max == 0) {
                 listener?.onActionPerformedFragment2(resultInt, -1, -1)
             }
+            else {
+                listener?.onActionPerformedFragment2(resultInt, min, max)
+            }
+
         }
 
         //Override backward button with my logic
         val callback = object : OnBackPressedCallback(true){
             override fun handleOnBackPressed() {
-                listener?.onActionPerformedFragment2(resultInt, min, max)
+                if(max == 0) {
+                    listener?.onActionPerformedFragment2(resultInt, -1, -1)
+                }
+                else {
+                    listener?.onActionPerformedFragment2(resultInt, min, max)
+                }
+
             }
         }
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner,callback)
     }
-
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putInt(PREVIOUS_RANDOM_NUMBER_KEY, resultInt)
@@ -92,7 +100,6 @@ class SecondFragment : Fragment() {
     }
 
     companion object {
-
         @JvmStatic
         fun newInstance(min: Int, max: Int): SecondFragment {
             val fragment = SecondFragment()
@@ -106,5 +113,6 @@ class SecondFragment : Fragment() {
         private const val MIN_VALUE_KEY = "MIN_VALUE"
         private const val MAX_VALUE_KEY = "MAX_VALUE"
         private const val PREVIOUS_RANDOM_NUMBER_KEY = "PREVIOUS_RANDOM_NUMBER"
+        private const val ZERO_CASE = -1
     }
 }

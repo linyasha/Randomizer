@@ -15,11 +15,15 @@ public class MainActivity extends AppCompatActivity implements FirstFragment.Act
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        //Set FullScreen
         getWindow().setFlags(
                 WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
         setContentView(R.layout.activity_main);
+
+        //Check case when screen orientation changed and should be not create one more fragment
         if(savedInstanceState == null) {
             openFirstFragment(0, 0, 0);
         }
@@ -31,7 +35,6 @@ public class MainActivity extends AppCompatActivity implements FirstFragment.Act
         transaction.replace(R.id.container, firstFragment);
         transaction.commit();
     }
-
 
     private void openSecondFragment(int min, int max) {
         final Fragment secondFragment = SecondFragment.newInstance(min, max);
@@ -46,5 +49,7 @@ public class MainActivity extends AppCompatActivity implements FirstFragment.Act
     }
 
     @Override
-    public void onActionPerformedFragment2(int result, int min, int max) { openFirstFragment(result, min, max); }
+    public void onActionPerformedFragment2(int result, int min, int max) {
+        openFirstFragment(result, min, max);
+    }
 }

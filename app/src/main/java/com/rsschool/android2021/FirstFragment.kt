@@ -4,18 +4,17 @@ import android.content.Context
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
-import androidx.activity.OnBackPressedCallback
 import androidx.fragment.app.Fragment
 
 class FirstFragment : Fragment() {
 
+    //Communication with activity
     interface ActionPerformedListenerFragment1 {
         fun onActionPerformedFragment1(min: Int, max: Int)
     }
@@ -25,8 +24,11 @@ class FirstFragment : Fragment() {
     private var previousResult: TextView? = null
     private var minEditText: EditText? = null
     private var maxEditText: EditText? = null
+    private var min: Int = 0
+    private var max: Int = 0
     private var listener: ActionPerformedListenerFragment1? = null
 
+    //Attach listener to MainActivity
     override fun onAttach(context: Context) {
         super.onAttach(context)
         listener = context as ActionPerformedListenerFragment1
@@ -37,7 +39,6 @@ class FirstFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        Log.d("saveState", "HelloCreatedView")
         return inflater.inflate(R.layout.fragment_first, container, false)
     }
 
@@ -51,55 +52,77 @@ class FirstFragment : Fragment() {
         generateButton = view.findViewById(R.id.generate)
         minEditText = view.findViewById(R.id.min_value)
         maxEditText = view.findViewById(R.id.max_value)
-        var min: Int = 0
-        var max: Int = 0
-        val minLast: Int? = arguments?.getInt(MIN_VALUE)
-        val maxLast: Int? = arguments?.getInt(MAX_VALUE)
-        //TODO: Поправить костыль
-        if(maxLast != 0) {
-            minEditText?.setText(minLast.toString())
-            maxEditText?.setText(maxLast.toString())
-            min = minLast!!
-            max = maxLast!!
-        }
-        if(maxLast == -1){
-            minEditText?.setText("0")
-            maxEditText?.setText("0")
-            min = 0
-            max = 0
-        }
 
+        //Last values when user switch on the second fragment
+        val minLast: Int = arguments?.getInt(MIN_VALUE) ?: 0
+        val maxLast: Int = arguments?.getInt(MAX_VALUE) ?: 0
+        when {
+            maxLast == ZERO_CASE -> {
+                minEditText?.setText("0")
+                maxEditText?.setText("0")
+            }
+             maxLast > 0 -> {
+                 minEditText?.setText(minLast.toString())
+                 maxEditText?.setText(maxLast.toString())
+                 min = minLast
+                 max = maxLast
+            }
+        }
+        //Change enabled button to false if editText have some errors or isEmpty
         generateButton?.isEnabled = (minEditText?.text?.isNotEmpty() == true && maxEditText?.text?.isNotEmpty() == true
                 && minEditText?.error == null && minEditText?.error == null)
-            //Log.d("saveState", "HelloViewCreated!!!!!!")
 
+        //Logic when user change EditText field
         val inputTextWatcher: TextWatcher = object:TextWatcher{
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
-
-            }
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
 
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                Log.d("saveState", "Hello TextChanges")
-                // TODO: Установить выдачу ошибок у EditText при некорректных значениях
                 val minString: String = minEditText?.text.toString()
                 val maxString: String = maxEditText?.text.toString()
+                //Checking each of the fields for going out of bounds
+                min = checkStringNumber(minString, minEditText)
+                max = checkStringNumber(maxString, maxEditText)
                 if (minString.isNotEmpty() && maxString.isNotEmpty()) {
-
-
-                    min = try { minString.toInt() } catch (e: NumberFormatException) { -1 }
-                    max = try { maxString.toInt() } catch (e: NumberFormatException) { -1 }
-
-                    generateButton?.isEnabled = max >= min && max < Int.MAX_VALUE && min >= 0 && max >= 0
+                    if(max < min) {
+                        if(maxEditText?.error != NUMBER_EXCEEDS_RANGE) maxEditText?.error = MAX_NUMBER_LESS_THAN_MIN
+                    }
+                    else {
+                        maxEditText?.error = null
+                    }
+                    generateButton?.isEnabled = minEditText?.error == null && maxEditText?.error == null
                 }
                 else {
                     generateButton?.isEnabled = false
                 }
             }
 
-            override fun afterTextChanged(s: Editable?) {
-
+            private fun checkStringNumber(needString: String, needEditText: EditText?): Int {
+                var result: Int
+                if (needString.isNotEmpty()) {
+                    var enterOfLimit: Boolean = true
+                    try {
+                        result = needString.toInt()
+                        needEditText?.error = null
+                    }
+                    catch (e: NumberFormatException) {
+                        enterOfLimit = false
+                        result = 0
+                    }
+                    if(!enterOfLimit || result < 0) {
+                        needEditText?.error = NUMBER_EXCEEDS_RANGE
+                        return 0
+                    }
+                }
+                else {
+                    needEditText?.error = null
+                    result = 0
+                }
+                return result
             }
+
+            override fun afterTextChanged(s: Editable?) {}
         }
+
         minEditText?.addTextChangedListener(inputTextWatcher)
         maxEditText?.addTextChangedListener(inputTextWatcher)
 
@@ -109,8 +132,7 @@ class FirstFragment : Fragment() {
     }
 
     companion object {
-
-        @JvmStatic
+        @JvmStatic   // For using FirstFragment.newInstance in Java class but not FirstFragment.Companion.newInstance()
         fun newInstance(previousResult: Int, minValue: Int, maxValue: Int): FirstFragment {
             val fragment = FirstFragment()
             val args = Bundle()
@@ -120,8 +142,12 @@ class FirstFragment : Fragment() {
             fragment.arguments = args
             return fragment
         }
+
         private const val PREVIOUS_RESULT_KEY = "PREVIOUS_RESULT"
         private const val MIN_VALUE = "MIN_VALUE"
         private const val MAX_VALUE = "MAX_VALUE"
+        private const val NUMBER_EXCEEDS_RANGE = "Number is too large"
+        private const val MAX_NUMBER_LESS_THAN_MIN = "Maximum limit is less than minimum"
+        private const val ZERO_CASE = -1
     }
 }
